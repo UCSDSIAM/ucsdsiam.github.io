@@ -5,7 +5,11 @@
       Find the schedule for events. The calendar below reflects the most up-to-date schedule.
     </p>
 
-    <section class="section section--first card-grid">
+    <section class="section section--first">
+      <EventsList :events="EVENTS" />
+    </section>
+
+    <section class="section card-grid">
       <EventTypeCard event-type="Regular Events">
         Our regular meetings, which are scheduled based on the availability of invited speakers, take the form of student colloquiums or topic workshops.
       </EventTypeCard>
@@ -27,6 +31,7 @@
 
 <script setup>
 import EventTypeCard from '@/components/EventTypeCard.vue'
+import EventsList from "@/components/EventsList.vue";
 import { EVENTS } from '@/data/events'
 import { LINKS } from '@/data/links';
 </script>
