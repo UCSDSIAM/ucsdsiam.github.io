@@ -1,4 +1,3 @@
-<!-- EventsList.vue -->
 <template>
   <section class="events">
     <div v-if="events && events.length" class="events__list">
@@ -22,22 +21,71 @@
         </div>
 
         <div class="card__body">
-          <div v-if="hasPdf(e)" class="pdf">
-            <div class="pdf__bar">
-              <span class="pdf__label">Flyer</span>
-              <a class="pdf__link" :href="e.src" target="_blank" rel="noopener">
+          <div v-if="has_flyer(e)" class="pdf">
+            <div class="bar">
+              <span class="label">Flyer</span>
+              <a class="url__link" :href="`${e.source_folder}${e.flyer}`" target="_blank" rel="noopener">
                 Open PDF
               </a>
             </div>
 
-            <object class="pdf__viewer" :data="e.src" type="application/pdf">
-              <iframe class="pdf__viewer" :src="e.src" title="Event PDF viewer" />
+            <object class="pdf__viewer" :data="`${e.source_folder}${e.flyer}`" type="application/pdf">
+              <iframe class="pdf__viewer" :src="`${e.source_folder}${e.flyer}`" title="Event PDF viewer" />
             </object>
           </div>
 
           <div v-else class="content">
             <p v-if="e.content" class="content__text">{{ e.content }}</p>
             <p v-else class="content__text content__text--muted">No details provided.</p>
+          </div>
+        </div>
+
+        <div v-if="e.photos && e.photos.length" class="gallery card__body">
+          <div class="bar">
+            <span class="label">Photos</span>
+
+            <a class="url__link" :href="get_photo_url(e, i)" target="_blank" rel="noopener">
+              Open Photo
+            </a>
+          </div>
+
+          <div class="gallery__viewer">
+            <button
+              class="gallery__nav gallery__nav--left"
+              type="button"
+              aria-label="Previous photo"
+              @click="previous_photo(e, i)"
+            >
+              ‹
+            </button>
+
+            <img
+              class="gallery__imgLarge"
+              :src="get_photo_url(e, i)"
+              :alt="`photo ${current_index(i) + 1}`"
+              loading="lazy"
+            />
+
+            <button
+              class="gallery__nav gallery__nav--right"
+              type="button"
+              aria-label="Next photo"
+              @click="next_photo(e, i)"
+            >
+              ›
+            </button>
+          </div>
+
+          <div class="gallery__dots" role="tablist" aria-label="Photo navigation">
+            <button
+              v-for="(p, j) in e.photos"
+              :key="j"
+              type="button"
+              class="gallery__dot"
+              :class="{ active: current_index(i) === j }"
+              :aria-label="`Go to photo ${j + 1}`"
+              @click="set_photo(i, j)"
+            />
           </div>
         </div>
       </article>
@@ -48,6 +96,8 @@
 </template>
 
 <script setup>
+import { reactive } from "vue";
+
 defineProps({
   events: {
     type: Array,
@@ -55,14 +105,42 @@ defineProps({
   },
 });
 
-function hasPdf(e) {
-  let flag = typeof e?.src === "string";
+function has_flyer(e) {
+  let flag = typeof e?.flyer === "string";
   if (!flag) return false;
 
-  let s = e.src.trim();
+  let s = e.flyer.trim();
+  console.log( s );
   flag = flag && s.length > 0 && s.toLowerCase().endsWith(".pdf");
 
   return flag;
+}
+
+const photo_index = reactive({});
+
+function current_index(i) {
+  return photo_index[i] ?? 0;
+}
+
+function set_photo(i, j) {
+  photo_index[i] = j;
+}
+
+function get_photo_url(e, i) {
+  const index = current_index(i);
+  return `${e.source_folder}${e.photos[index]}`;
+}
+
+function next_photo(e, i) {
+  const l = e.photos.length;
+  const index = current_index(i);
+  photo_index[i] = (index + 1) % l;
+}
+
+function previous_photo(e, i) {
+  const l = e.photos.length;
+  const index = current_index(i);
+  photo_index[i] = (index - 1 + l) % l;
 }
 </script>
 
@@ -102,7 +180,6 @@ function hasPdf(e) {
 
 .card__top {
   padding: var(--card-padding);
-  border-bottom: 1px solid var(--divider);
 }
 
 .card__titleRow {
@@ -161,9 +238,10 @@ function hasPdf(e) {
 
 .card__body {
   padding: var(--card-padding);
+  border-top: 1px solid var(--divider);
 }
 
-.pdf__bar {
+.bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -171,17 +249,17 @@ function hasPdf(e) {
   margin-bottom: 0.75rem;
 }
 
-.pdf__label {
+.label {
   font-size: 0.9rem;
   color: var(--text-tertiary);
 }
 
-.pdf__link {
+.url__link {
   font-size: 0.95rem;
   color: var(--link);
   text-decoration: none;
 }
-.pdf__link:hover {
+.url__link:hover {
   color: var(--highlight-hover);
   text-decoration: underline;
 }
@@ -209,5 +287,62 @@ function hasPdf(e) {
   margin: 0;
   font-size: 1rem;
   color: var(--text-muted);
+}
+
+.gallery__viewer {
+  position: relative;
+  width: 100%;
+}
+
+.gallery__imgLarge {
+  width: 100%;
+  object-fit: contain;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: var(--bg-gradient);
+  display: block;
+}
+
+.gallery__nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 0;
+  cursor: pointer;
+  font-size: 28px;
+  font-weight: 800;
+  padding: 16px 16px;
+  border-radius: 20px;
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--text-muted) 60%, transparent);
+  backdrop-filter: blur(10px);
+}
+
+.gallery__nav--left {
+  left: 10px;
+}
+
+.gallery__nav--right {
+  right: 10px;
+}
+
+.gallery__dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.gallery__dot {
+  width: 15px;
+  height: 5px;
+  border-radius: 15px;
+  border: 0;
+  cursor: pointer;
+  background: rgba(148, 163, 184, 0.7);
+}
+
+.gallery__dot.active {
+  background: rgba(59, 130, 246, 0.95);
 }
 </style>
